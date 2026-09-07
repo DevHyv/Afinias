@@ -146,7 +146,7 @@
 
         Label:
             id: status_lbl
-            text: 'Pulsa “Activar micrófono” para comenzar.'
+            text: 'Pulsa "Activar micrófono" para comenzar.'
             font_size: sp(13)
             color: '#9292A1'
             size_hint_y: None
@@ -214,9 +214,7 @@
             Spinner:
                 id: spin_from
                 text: 'Sol (G)'
-                values: [f"{es} ({en})" for es, en in zip(
-                    ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'],
-                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
+                values: app.root.get_screen('transposer').get_spinner_values()
                 background_normal: ''
                 background_color: get_color_from_hex('#20202E')
                 color: '#FFFFFF'
@@ -224,9 +222,7 @@
             Spinner:
                 id: spin_to
                 text: 'Do (C)'
-                values: [f"{es} ({en})" for es, en in zip(
-                    ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'],
-                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
+                values: app.root.get_screen('transposer').get_spinner_values()
                 background_normal: ''
                 background_color: get_color_from_hex('#20202E')
                 color: '#FFFFFF'
