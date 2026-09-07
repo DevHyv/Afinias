@@ -69,6 +69,9 @@ INSTRUMENTS = {
     ],
 }
 
+# Generar valores del spinner para evitar repetición
+SPINNER_VALUES = [f"{es} ({en})" for es, en in zip(NOTES_ES, NOTES_EN)]
+
 
 def nearest_note(freq):
     """Return musical note name and cents offset for a detected frequency."""
@@ -133,7 +136,13 @@ def detect_pitch_autocorrelation(samples, sample_rate):
 
 
 class AndroidMicRecorder:
-    """Small wrapper around Android AudioRecord using pyjnius."""
+    """Small wrapper around Android AudioRecord using pyjnius.
+    
+    Constants:
+        SAMPLE_RATE: Audio sample rate in Hz (44100 Hz)
+        CHANNEL_CONFIG: Audio channel configuration (16 = CHANNEL_IN_MONO)
+        AUDIO_FORMAT: Audio encoding format (2 = ENCODING_PCM_16BIT)
+    """
 
     SAMPLE_RATE = 44100
     CHANNEL_CONFIG = 16  # AudioFormat.CHANNEL_IN_MONO
@@ -227,6 +236,7 @@ class TunerScreen(Screen):
         self.last_freq = None
         self.freq_history = deque(maxlen=5)
         self.target_freq = None
+        self.permission_retries = 0
 
     def on_kv_post(self, base_widget):
         self.render_strings()
@@ -299,9 +309,15 @@ class TunerScreen(Screen):
         try:
             permission = Permission.RECORD_AUDIO
             if check_permission(permission):
+                self.permission_retries = 0
                 return True
-            request_permissions([permission], self._on_permission_result)
-            return False
+            self.permission_retries += 1
+            if self.permission_retries <= 2:
+                request_permissions([permission], self._on_permission_result)
+                return False
+            else:
+                self._set_status('Permisos denegados múltiples veces.')
+                return False
         except Exception as exc:
             self._set_status(f'Permiso de micrófono: {exc}')
             return False
@@ -309,6 +325,7 @@ class TunerScreen(Screen):
     def _on_permission_result(self, permissions, grants):
         granted = bool(grants) and all(bool(g) for g in grants)
         if granted:
+            self.permission_retries = 0
             Clock.schedule_once(lambda _dt: self.start_microphone(), 0.1)
         else:
             Clock.schedule_once(lambda _dt: self._permission_denied(), 0.1)
@@ -370,7 +387,13 @@ class TunerScreen(Screen):
             target = min(self.current_strings, key=lambda s: abs(s['freq'] - freq))
 
         self.target_freq = target['freq']
-        cents = int(round(1200.0 * math.log2(freq / target['freq'])))
+        
+        # Validar que freq y target['freq'] sean válidos antes de calcular cents
+        if freq > 0 and target['freq'] > 0:
+            cents = int(round(1200.0 * math.log2(freq / target['freq'])))
+        else:
+            cents = 0
+            
         cents_clamped = max(-50, min(50, cents))
         self.ids.lbl_note.text = target['note']
         self.ids.lbl_freq.text = f'{freq:.1f} Hz'
@@ -411,6 +434,10 @@ class TransposerScreen(Screen):
         super().__init__(**kwargs)
         self.note_pairs = list(zip(NOTES_ES, NOTES_EN))
 
+    def get_spinner_values(self):
+        """Retorna los valores del spinner para evitar repetición en KV."""
+        return SPINNER_VALUES
+
     def process_transpose(self):
         from_idx = self.parse_selector(self.ids.spin_from.text)
         to_idx = self.parse_selector(self.ids.spin_to.text)
@@ -438,7 +465,8 @@ class TransposerScreen(Screen):
                     converted.append(token)
                 else:
                     converted.append(target_arr[(note_idx + shift) % 12] + suffix)
-            lines.append('  '.join(converted))
+            # Mantener el espaciado original usando un espacio simple
+            lines.append(' '.join(converted))
 
         self.ids.lbl_output.text = '\n'.join(lines)
 
@@ -463,7 +491,7 @@ class TransposerScreen(Screen):
             if upper.startswith(name):
                 # Avoid interpreting words like 'Solamente' as Sol chords.
                 rest = chord[len(name):]
-                if rest and rest[0].isalpha() and rest[0].upper() in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+                if rest and rest[0].isalpha():
                     continue
                 return NOTE_MAP[name], rest
         return None, chord
