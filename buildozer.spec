@@ -12,7 +12,7 @@ source.exclude_dirs = .git,__pycache__,.github,bin,.buildozer
 version = 1.0.0
 
 # Dependencias Python
-requirements = python3,kivy==2.3.0,numpy,pyjnius
+requirements = python3,kivy==2.3.0,numpy,pyjnius,cython
 
 # Android
 android.permissions = RECORD_AUDIO,INTERNET
