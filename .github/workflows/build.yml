@@ -1,127 +1,97 @@
-name: Compilar APK Android - Afinia
+name: Build APK
 
 on:
   push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    env:
+      JAVA_HOME: /usr/lib/jvm/java-17-temurin
 
     steps:
-      - name: Descargar repositorio
-        uses: actions/checkout@v4
-
-      - name: Instalar dependencias del sistema
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            git zip unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            autoconf automake libtool pkg-config \
-            zlib1g-dev libncurses5-dev libncursesw5-dev \
-            libffi-dev libssl-dev \
-            ccache libltdl-dev \
-            build-essential \
-            gradle
-
-      - name: Configurar Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: pip
-
-      - name: Cache de pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            pip-${{ runner.os }}-
-
-      - name: Instalar Buildozer y Cython
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install buildozer==1.5.0
-          python -m pip install cython==0.29.36
-
-      - name: Cache de Buildozer
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-          restore-keys: |
-            buildozer-${{ runner.os }}-
-
-      - name: Validar configuración
-        run: |
-          if [ ! -f buildozer.spec ]; then
-            echo "❌ Error: buildozer.spec no encontrado"
-            exit 1
-          fi
-          echo "✓ buildozer.spec validado"
-
-      - name: Compilar APK debug
-        env:
-          P4A_RELEASE_KEYSTORE: ''
-          ANDROID_SDK_ROOT: /root/.buildozer/android/platform/android-sdk
-          ANDROID_NDK_ROOT: /root/.buildozer/android/platform/android-ndk
-          JAVA_HOME: /usr/lib/jvm/java-17-temurin
-        run: |
-          set -e
-          echo "Iniciando compilación..."
-          buildozer -v android debug 2>&1 | tee build.log
-          BUILD_STATUS=$?
-          
-          if [ $BUILD_STATUS -ne 0 ]; then
-            echo "❌ Error en la compilación (código: $BUILD_STATUS)"
-            echo "Últimas líneas del log:"
-            tail -50 build.log
-            exit 1
-          fi
-          echo "✓ Compilación completada exitosamente"
-
-      - name: Mostrar APK generado
-        if: success()
-        run: |
-          echo "Contenido del directorio bin:"
-          ls -lah bin/
-          APK_COUNT=$(find bin -name "*.apk" 2>/dev/null | wc -l)
-          echo "APKs encontrados: $APK_COUNT"
-
-      - name: Diagnosticar en caso de fallo
-        if: failure()
-        run: |
-          echo "❌ El workflow falló. Información de diagnóstico:"
-          echo ""
-          echo "=== Log de construcción ==="
-          tail -100 build.log || echo "No hay build.log"
-          echo ""
-          echo "=== Contenido de bin/ ==="
-          ls -la bin/ 2>/dev/null || echo "El directorio bin/ no existe"
-          echo ""
-          echo "=== Espacio en disco ==="
-          df -h
-          echo ""
-          echo "=== Variables de entorno ==="
-          env | grep -E "ANDROID|JAVA|PATH" || true
-
-      - name: Subir APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Afinia-APK-debug
-          path: bin/*.apk
-          if-no-files-found: error
-          retention-days: 14
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          libffi-dev \
+          libssl-dev \
+          python3-dev \
+          python3-pip \
+          git \
+          cython
+    
+    - name: Create Android SDK directories
+      run: |
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        mkdir -p ~/.buildozer/android/platform/android-ndk
+    
+    - name: Accept SDK Licenses
+      run: |
+        mkdir -p ~/.android
+        echo -e "\n8933bad161af4d5d5f76d7fc9a90cad7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\nd975f751696ccc14760859f7f64f5e96" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+        echo -e "\nec53b95b94c8425d29f32fa855ead4de" > ~/.buildozer/android/platform/android-sdk/licenses/android-google-play-services-license
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip wheel
+        pip install -r requirements.txt
+    
+    - name: Cache .buildozer
+      uses: actions/cache@v4
+      with:
+        path: ~/.buildozer
+        key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec', 'requirements.txt') }}
+        restore-keys: |
+          buildozer-${{ runner.os }}-
+    
+    - name: Build APK
+      run: |
+        buildozer android release 2>&1 | tee build.log
+      timeout-minutes: 90
+    
+    - name: Check build status
+      run: |
+        if [ -f "bin/afinia-1.0.0-release-unsigned.apk" ]; then
+          echo "✓ APK built successfully!"
+          ls -lh bin/afinia-1.0.0-release-unsigned.apk
+        else
+          echo "✗ APK build failed"
+          tail -100 build.log
+          exit 1
+        fi
+    
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: afinia-apk
+        path: bin/afinia-1.0.0-release-unsigned.apk
+        retention-days: 30
+    
+    - name: Upload build log
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-log
+        path: build.log
+        retention-days: 7
