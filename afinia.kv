@@ -1,0 +1,270 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+#:import dp kivy.metrics.dp
+#:import sp kivy.metrics.sp
+
+<ScreenBackground@BoxLayout>:
+    orientation: 'vertical'
+    padding: dp(14)
+    spacing: dp(12)
+
+<NavButton@Button>:
+    background_normal: ''
+    background_color: get_color_from_hex('#242436')
+    color: '#FFFFFF'
+    font_size: sp(15)
+    bold: True
+    size_hint_y: None
+    height: dp(46)
+
+<PrimaryButton@Button>:
+    background_normal: ''
+    background_color: get_color_from_hex('#5A4A7A')
+    color: '#FFFFFF'
+    font_size: sp(17)
+    bold: True
+    size_hint_y: None
+    height: dp(54)
+
+<TunerScreen>:
+    ScreenBackground:
+        BoxLayout:
+            size_hint_y: None
+            height: dp(52)
+            spacing: dp(8)
+            Label:
+                text: 'Afinia'
+                font_size: sp(30)
+                bold: True
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.size
+                color: '#D7B8F2'
+            Button:
+                text: 'Acordes'
+                background_normal: ''
+                background_color: get_color_from_hex('#242436')
+                color: '#FFFFFF'
+                font_size: sp(14)
+                on_release: root.go_transposer()
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(8)
+            Spinner:
+                id: instrument_spinner
+                text: 'Guitarra (6 cuerdas)'
+                values: ['Guitarra (6 cuerdas)', 'Bajo', 'Ukelele']
+                background_normal: ''
+                background_color: get_color_from_hex('#20202E')
+                color: '#FFFFFF'
+                font_size: sp(15)
+                on_text: root.on_instrument_change(self.text)
+            Button:
+                id: mic_btn
+                text: 'Activar micrófono'
+                background_normal: ''
+                background_color: get_color_from_hex('#262638')
+                color: '#FFFFFF'
+                font_size: sp(14)
+                bold: True
+                on_release: root.toggle_microphone()
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(44)
+            spacing: dp(8)
+            Button:
+                id: btn_auto
+                text: 'AUTO'
+                background_normal: ''
+                background_color: get_color_from_hex('#5A4A7A')
+                color: '#FFFFFF'
+                bold: True
+                on_release: root.set_mode('auto')
+            Button:
+                id: btn_manual
+                text: 'MANUAL'
+                background_normal: ''
+                background_color: get_color_from_hex('#262638')
+                color: '#FFFFFF'
+                bold: True
+                on_release: root.set_mode('manual')
+
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(148)
+            spacing: dp(0)
+            Label:
+                id: lbl_note
+                text: '–'
+                font_size: sp(70)
+                bold: True
+                color: '#FFFFFF'
+            Label:
+                id: lbl_freq
+                text: '0.0 Hz'
+                font_size: sp(19)
+                color: '#B9B9C6'
+            Label:
+                id: target_lbl
+                text: 'Objetivo: —'
+                font_size: sp(14)
+                color: '#8C8C9A'
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(70)
+            spacing: dp(8)
+            Label:
+                text: '♭'
+                size_hint_x: None
+                width: dp(24)
+                font_size: sp(22)
+                color: '#888899'
+            ProgressBar:
+                id: cent_bar
+                max: 100
+                value: 50
+                min: 0
+            Label:
+                text: '♯'
+                size_hint_x: None
+                width: dp(24)
+                font_size: sp(22)
+                color: '#888899'
+
+        Label:
+            id: lbl_cents
+            text: '—'
+            font_size: sp(25)
+            bold: True
+            size_hint_y: None
+            height: dp(42)
+            color: '#FFFFFF'
+
+        Label:
+            id: status_lbl
+            text: 'Pulsa “Activar micrófono” para comenzar.'
+            font_size: sp(13)
+            color: '#9292A1'
+            size_hint_y: None
+            height: dp(36)
+            text_size: self.size
+            halign: 'center'
+            valign: 'middle'
+
+        GridLayout:
+            id: strings_grid
+            cols: 3
+            spacing: dp(8)
+            size_hint_y: 1
+
+<TransposerScreen>:
+    ScreenBackground:
+        BoxLayout:
+            size_hint_y: None
+            height: dp(52)
+            spacing: dp(8)
+            Label:
+                text: 'Transpositor'
+                font_size: sp(27)
+                bold: True
+                color: '#D7B8F2'
+                halign: 'left'
+                valign: 'middle'
+                text_size: self.size
+            Button:
+                text: 'Afinador'
+                background_normal: ''
+                background_color: get_color_from_hex('#242436')
+                color: '#FFFFFF'
+                font_size: sp(14)
+                on_release: root.go_tuner()
+
+        Label:
+            text: 'Escribe una progresión y cambia la tonalidad.'
+            size_hint_y: None
+            height: dp(30)
+            color: '#8F8F9E'
+            font_size: sp(13)
+
+        TextInput:
+            id: input_chords
+            text: 'Sol  Mim  Lam  Re7'
+            multiline: True
+            size_hint_y: None
+            height: dp(112)
+            background_normal: ''
+            background_active: ''
+            background_color: get_color_from_hex('#20202E')
+            foreground_color: '#FFFFFF'
+            cursor_color: '#D7B8F2'
+            padding: [dp(12), dp(12), dp(12), dp(12)]
+            font_size: sp(17)
+            hint_text: 'Ejemplo: Sol  Mim  Lam  Re7'
+            hint_text_color: '#666675'
+
+        GridLayout:
+            cols: 2
+            spacing: dp(8)
+            size_hint_y: None
+            height: dp(50)
+            Spinner:
+                id: spin_from
+                text: 'Sol (G)'
+                values: [f"{es} ({en})" for es, en in zip(
+                    ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'],
+                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
+                background_normal: ''
+                background_color: get_color_from_hex('#20202E')
+                color: '#FFFFFF'
+                font_size: sp(15)
+            Spinner:
+                id: spin_to
+                text: 'Do (C)'
+                values: [f"{es} ({en})" for es, en in zip(
+                    ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'],
+                    ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'])]
+                background_normal: ''
+                background_color: get_color_from_hex('#20202E')
+                color: '#FFFFFF'
+                font_size: sp(15)
+
+        Spinner:
+            id: spin_format
+            text: 'Español (Do, Re, Mi...)'
+            values: ['Español (Do, Re, Mi...)', 'Anglo (C, D, E...)']
+            size_hint_y: None
+            height: dp(50)
+            background_normal: ''
+            background_color: get_color_from_hex('#20202E')
+            color: '#FFFFFF'
+            font_size: sp(15)
+
+        PrimaryButton:
+            text: 'TRANSPONER'
+            on_release: root.process_transpose()
+
+        Label:
+            text: 'Resultado'
+            size_hint_y: None
+            height: dp(28)
+            color: '#8F8F9E'
+            font_size: sp(13)
+
+        ScrollView:
+            do_scroll_x: False
+            bar_width: dp(4)
+            Label:
+                id: lbl_output
+                text: 'Do  Lam  Rem  Sol7'
+                color: get_color_from_hex('#9BE564')
+                font_size: sp(24)
+                bold: True
+                size_hint_y: None
+                height: max(dp(80), self.texture_size[1] + dp(30))
+                text_size: self.width - dp(20), None
+                halign: 'center'
+                valign: 'middle'
